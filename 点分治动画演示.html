@@ -1,0 +1,691 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>点分治 · 动画演示</title>
+<style>
+  :root{
+    --bg:#0d1421; --panel:#151f31; --panel2:#1b2740; --line:#2a3853;
+    --text:#e9f0fb; --muted:#93a4bf; --dim:#5f7190;
+    --accent:#5b8cff; --orange:#ff8a3d; --green:#25c2a0; --purple:#a78bfa;
+    --yellow:#ffd43b; --red:#ff6b6b;
+  }
+  body.light{
+    --bg:#f4f7fc; --panel:#ffffff; --panel2:#f0f4fb; --line:#dde5f2;
+    --text:#1d2b45; --muted:#5c6f8c; --dim:#9aa8bd;
+    --accent:#3b5bdb; --orange:#e8590c; --green:#0ca678; --purple:#7048e8;
+    --yellow:#f0a500; --red:#e03131;
+  }
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--bg);color:var(--text);
+       font-family:"Microsoft YaHei","PingFang SC",sans-serif;font-size:14px;
+       transition:background .3s,color .3s}
+  .wrap{max-width:1280px;margin:0 auto;padding:14px 20px 20px}
+  header{display:flex;align-items:center;justify-content:space-between;gap:14px;flex-wrap:wrap;margin-bottom:14px}
+  h1{font-size:22px;margin:0;letter-spacing:1px}
+  h1 small{font-size:12px;color:var(--muted);font-weight:400;letter-spacing:0;margin-left:10px}
+  .tools{display:flex;gap:10px;align-items:center;flex-wrap:wrap}
+  label.sel{font-size:12px;color:var(--muted);display:flex;align-items:center;gap:6px}
+  select,button{font-family:inherit;font-size:12.5px;border-radius:8px;border:1px solid var(--line);
+    background:var(--panel2);color:var(--text);padding:7px 11px;cursor:pointer;transition:.2s}
+  select:hover,button:hover{border-color:var(--accent)}
+  button.primary{background:var(--accent);border-color:var(--accent);color:#fff;font-weight:700}
+  button:disabled{opacity:.4;cursor:not-allowed}
+  .intro{background:var(--panel);border:1px solid var(--line);border-radius:10px;
+    padding:9px 14px;font-size:12.5px;color:var(--muted);margin-bottom:14px;line-height:1.7}
+  .intro b{color:var(--text)}
+  .legend{display:inline-flex;gap:13px;flex-wrap:wrap;margin-left:8px}
+  .lg{display:inline-flex;align-items:center;gap:5px}
+  .dot{width:10px;height:10px;border-radius:50%;display:inline-block}
+
+  .main{display:grid;grid-template-columns:minmax(0,1fr) 340px;gap:14px;align-items:start}
+  .card{background:var(--panel);border:1px solid var(--line);border-radius:14px;overflow:hidden}
+  .card-h{padding:8px 13px;border-bottom:1px solid var(--line);display:flex;
+    justify-content:space-between;align-items:center;font-size:12px;color:var(--muted)}
+  .card-h b{color:var(--text);font-size:13px}
+  #stage{padding:8px 12px 4px}
+  svg{width:100%;height:auto;display:block;max-height:430px}
+
+  /* ---------- SVG 样式 ---------- */
+  .block-box{fill:var(--accent);opacity:.055;stroke:var(--accent);stroke-width:1.5;
+    stroke-dasharray:7 6;rx:16;transition:all .25s ease}
+  .edge{stroke:#42557a;stroke-width:2.4;stroke-linecap:round;transition:all .18s}
+  body.light .edge{stroke:#b9c6da}
+  .edge.group{stroke-width:2.8}
+  .edge.cut{stroke-dasharray:5 6;stroke:var(--orange);opacity:.55}
+  .edge.faint{opacity:.12}
+  .edge.path{stroke:var(--yellow);stroke-width:5;opacity:1}
+  .w{font-size:12px;font-weight:700;fill:var(--muted);text-anchor:middle;paint-order:stroke;
+     stroke:var(--panel);stroke-width:3;transition:opacity .18s}
+  .w.faint{opacity:.1}
+  .node{transition:opacity .18s}
+  .node.out{opacity:.13}
+  .node .disc{fill:var(--panel2);stroke:#4a5d80;stroke-width:2;transition:fill .18s,stroke .18s,r .18s}
+  body.light .node .disc{fill:#e8eef8;stroke:#aebdd3}
+  .node .num{font-size:13px;font-weight:700;fill:var(--text);text-anchor:middle;
+    dominant-baseline:central;transition:fill .18s}
+  .node.group .disc{fill:var(--gc);stroke:var(--gc)}
+  .node.group .num{fill:#fff}
+  .node.centroid .disc{fill:var(--orange);stroke:#fff;stroke-width:2.5}
+  .node.centroid .num{fill:#fff}
+  .node.dead .disc{fill:#39445a;stroke:#4d5b73;stroke-dasharray:3 3}
+  body.light .node.dead .disc{fill:#d9e0eb;stroke:#b9c6da}
+  .node.dead .num{fill:var(--dim)}
+  .node.focus .disc{stroke:var(--yellow);stroke-width:3.5}
+  .halo{fill:none;stroke:var(--orange);stroke-width:2;opacity:0;transition:opacity .3s}
+  .node.centroid .halo{opacity:.85;animation:pulse 1.6s ease-in-out infinite}
+  @keyframes pulse{0%,100%{r:23;opacity:.8}50%{r:31;opacity:.12}}
+  .badge{font-size:11px;font-weight:700;fill:var(--text);text-anchor:middle;
+    paint-order:stroke;stroke:var(--panel);stroke-width:4}
+  .cross{stroke:var(--dim);stroke-width:2.2;opacity:0;transition:opacity .3s}
+  .node.dead .cross{opacity:.9}
+  /* 本轮重心即使已被删除，也保持橙色高亮（放在 dead 规则之后以覆盖） */
+  .node.centroid .disc{fill:var(--orange);stroke:#fff;stroke-width:2.5}
+  body.light .node.centroid .disc{fill:var(--orange);stroke:#fff}
+  .node.centroid .num{fill:#fff}
+
+  /* ---------- 右侧面板 ---------- */
+  .side{display:flex;flex-direction:column;gap:8px}
+  .pad{padding:10px 13px}
+  .phase{display:inline-block;font-size:11px;font-weight:700;letter-spacing:1px;
+    padding:3px 10px;border-radius:20px;background:rgba(91,140,255,.16);color:var(--accent)}
+  .phase.c2{background:rgba(255,138,61,.16);color:var(--orange)}
+  .phase.c3{background:rgba(37,194,160,.16);color:var(--green)}
+  .phase.c4{background:rgba(167,139,250,.16);color:var(--purple)}
+  .phase.c5{background:rgba(255,212,59,.16);color:var(--yellow)}
+  #stepTitle{font-size:17px;font-weight:700;margin:9px 0 6px;line-height:1.4}
+  #stepDesc{font-size:12.7px;color:var(--muted);line-height:1.7;min-height:56px}
+  #stepHint{font-size:11.5px;color:var(--dim);border-top:1px dashed var(--line);
+    margin-top:9px;padding-top:9px;line-height:1.6}
+  .vars{display:grid;grid-template-columns:repeat(3,1fr);gap:7px}
+  .v{background:var(--panel2);border-radius:8px;padding:7px 8px;text-align:center}
+  .v .k{font-size:10px;color:var(--dim);letter-spacing:.5px}
+  .v .val{font-size:15px;font-weight:700;margin-top:2px;font-family:Consolas,monospace}
+  .v.hot .val{color:var(--orange)}
+  .v.ans .val{color:var(--green)}
+  .code{font-family:Consolas,"Courier New",monospace;font-size:11px;line-height:1.55;
+    background:var(--panel2);border-radius:9px;padding:9px 8px;
+    overflow:auto;max-height:150px;position:relative;white-space:pre}
+  .code .ln{display:block;padding:0 7px;border-radius:4px;color:var(--muted)}
+  .code .ln.on{background:rgba(91,140,255,.22);color:var(--text);
+    box-shadow:inset 3px 0 0 var(--accent)}
+  .code .cm{color:var(--dim)}
+  .arr-title{font-size:11px;color:var(--dim);margin-bottom:7px;letter-spacing:.5px}
+  .cells{display:flex;gap:4px;flex-wrap:wrap;align-items:flex-end;min-height:38px}
+  .cell{min-width:25px;height:27px;border-radius:5px;background:var(--panel2);
+    border:1px solid var(--line);display:flex;align-items:center;justify-content:center;
+    font-size:11.5px;font-family:Consolas,monospace;position:relative;transition:.3s}
+  .cell.l{border-color:var(--green);box-shadow:0 0 0 2px rgba(37,194,160,.25)}
+  .cell.r{border-color:var(--orange);box-shadow:0 0 0 2px rgba(255,138,61,.25)}
+  .cell.lr{border-color:var(--yellow)}
+  .cell em{position:absolute;top:-15px;font-size:9px;font-style:normal;color:var(--dim)}
+  .cell.gA{border-bottom:3px solid var(--accent)}
+  .cell.gB{border-bottom:3px solid var(--green)}
+  .cell.gC{border-bottom:3px solid var(--purple)}
+  .subrows{display:flex;flex-direction:column;gap:5px;margin-top:8px}
+  .subrow{font-size:11.5px;color:var(--muted);display:flex;align-items:center;gap:6px}
+  .chip{width:9px;height:9px;border-radius:3px;display:inline-block}
+
+  /* ---------- 控制条 ---------- */
+  .controls{margin:0 0 14px;background:var(--panel);border:1px solid var(--line);
+    border-radius:14px;padding:10px 15px}
+  .row1{display:flex;align-items:center;gap:9px;flex-wrap:wrap}
+  .row1 .sp{flex:1}
+  #seek{flex:1;min-width:180px;accent-color:var(--accent);cursor:pointer}
+  .counter{font-size:12px;color:var(--muted);font-family:Consolas,monospace;min-width:88px;text-align:right}
+  .speed{display:flex;align-items:center;gap:6px;font-size:12px;color:var(--muted)}
+  input[type=range]{accent-color:var(--accent)}
+  .timeline{display:flex;gap:4px;margin-top:11px;overflow-x:auto;padding-bottom:4px}
+  .tl{flex:1;min-width:34px;height:22px;border:1px solid var(--line);border-radius:5px;
+    background:var(--panel2);color:var(--dim);font-size:10px;cursor:pointer;
+    display:flex;align-items:center;justify-content:center;white-space:nowrap;padding:0 4px}
+  .tl:hover{border-color:var(--accent)}
+  .tl.on{background:var(--accent);border-color:var(--accent);color:#fff;font-weight:700}
+  .tl.done{color:var(--muted)}
+  footer{display:flex;justify-content:space-between;gap:12px;flex-wrap:wrap;
+    margin-top:12px;font-size:11.5px;color:var(--dim)}
+  #verify{font-weight:700}
+  #verify.ok{color:var(--green)}
+  #verify.bad{color:var(--red)}
+  @media(max-width:980px){.main{grid-template-columns:1fr}.side{display:grid;grid-template-columns:1fr 1fr}}
+  @media(max-width:640px){.side{grid-template-columns:1fr}.wrap{padding:12px}}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <h1>点分治 · 动画演示 <small>Centroid Decomposition — 逐步播放真实计算过程</small></h1>
+    <div class="tools">
+      <label class="sel">K =
+        <select id="K">
+          <option value="4">4</option><option value="6" selected>6</option>
+          <option value="8">8</option><option value="10">10</option>
+        </select>
+      </label>
+      <label class="sel">示例树
+        <select id="treeSel"><option value="A">A · 分叉树（13 点）</option><option value="B">B · 链状树（9 点）</option></select>
+      </label>
+      <button id="theme">切换浅色</button>
+      <button id="reset">重置</button>
+    </div>
+  </header>
+
+  <div class="intro">
+    <b>目标：</b>数出树上距离 ≤ K 的点对。每轮挑<b>重心</b>当关卡 → 数经过它的路径 → 扣掉同组重复 → 删掉重心递归。
+    <div class="legend">
+      <span class="lg"><i class="dot" style="background:#ff8a3d"></i>当前重心</span>
+      <span class="lg"><i class="dot" style="background:#5b8cff"></i>分组 1</span>
+      <span class="lg"><i class="dot" style="background:#25c2a0"></i>分组 2</span>
+      <span class="lg"><i class="dot" style="background:#a78bfa"></i>分组 3</span>
+      <span class="lg"><i class="dot" style="background:#4d5b73"></i>已删除</span>
+      <span class="lg"><i class="dot" style="background:#ffd43b"></i>当前路径 / 指针</span>
+      <span class="lg">橙色虚线 = 重心删除后断开的边</span>
+    </div>
+  </div>
+
+  <div class="controls">
+    <div class="row1">
+      <button id="first" title="回到开头">⏮</button>
+      <button id="prev" title="上一步">◀ 上一步</button>
+      <button id="play" class="primary" style="min-width:96px">▶ 播放</button>
+      <button id="next" title="下一步">下一步 ▶</button>
+      <button id="last" title="跳到结尾">⏭</button>
+      <div class="sp"></div>
+      <span class="speed">慢 <input type="range" id="speed" min="80" max="1000" step="20" value="740" style="width:110px"> 快</span>
+      <span class="counter" id="counter">0 / 0</span>
+    </div>
+    <input type="range" id="seek" min="0" max="0" value="0" style="width:100%;margin-top:10px">
+    <div class="timeline" id="timeline"></div>
+  </div>
+
+  <div class="main">
+    <div class="card">
+      <div class="card-h"><b>树视图</b><span id="stageLabel">第 0 层 · 整个连通块</span></div>
+      <div id="stage"><svg id="svg" viewBox="0 0 760 380" xmlns="http://www.w3.org/2000/svg"></svg></div>
+    </div>
+
+    <div class="side">
+      <div class="card pad">
+        <span class="phase" id="phase">准备</span>
+        <div id="stepTitle">点分治，一步一步来</div>
+        <div id="stepDesc">按「播放」开始，或用「下一步」手动推进。右侧变量与代码会跟着当前步骤一起变。</div>
+        <div id="stepHint">提示：空格 = 播放/暂停，← → = 单步，R = 重置。</div>
+      </div>
+
+      <div class="card pad">
+        <div class="arr-title">当前变量</div>
+        <div class="vars" id="vars"></div>
+      </div>
+
+      <div class="card pad">
+        <div class="arr-title">距离数组 / 双指针</div>
+        <div class="cells" id="cells"></div>
+        <div class="subrows" id="subrows"></div>
+      </div>
+
+      <div class="card pad" style="padding-bottom:11px">
+        <div class="arr-title">伪代码（高亮 = 正在执行）</div>
+        <div class="code" id="code"></div>
+      </div>
+    </div>
+  </div>
+
+  <footer>
+    <span>点分治动画演示 · 与《点分治讲义.pdf》配套</span>
+    <span id="verify">正在校验…</span>
+  </footer>
+</div>
+
+<script>
+/* ================= 示例树数据 ================= */
+const TREES = {
+  A:{
+    pos:{1:[380,55],2:[190,145],3:[380,145],4:[570,145],5:[105,235],6:[265,235],
+         7:[305,235],8:[445,235],9:[520,235],10:[680,235],11:[105,320],12:[305,320],13:[520,320]},
+    edges:[[1,2,2],[1,3,1],[1,4,3],[2,5,1],[2,6,2],[3,7,1],[3,8,2],
+           [4,9,1],[4,10,2],[5,11,1],[7,12,3],[9,13,2]]
+  },
+  B:{
+    pos:{1:[80,95],2:[180,95],3:[280,95],4:[380,95],5:[480,95],
+         6:[480,225],7:[380,225],8:[280,225],9:[180,225]},
+    edges:[[1,2,1],[2,3,2],[3,4,1],[4,5,2],[5,6,1],[6,7,1],[7,8,2],[8,9,1]]
+  }
+};
+const GCOLORS = ['#5b8cff','#25c2a0','#a78bfa','#22b8cf','#fcc419','#f06595'];
+const SVGNS = 'http://www.w3.org/2000/svg';
+let TREE = 'A', K = 6, steps = [], idx = 0, playing = false, timer = null, speed = 380;
+let pos, edges, adj, ids, nodeEls = {}, edgeEls = [], blockRect;
+
+/* ================= 工具 ================= */
+const $ = id => document.getElementById(id);
+function mk(tag, attrs){
+  const e = document.createElementNS(SVGNS, tag);
+  for(const k in attrs) e.setAttribute(k, attrs[k]);
+  return e;
+}
+function buildAdj(){
+  adj = {}; ids = Object.keys(pos).map(Number);
+  ids.forEach(i => adj[i] = []);
+  edges.forEach(([a,b,w]) => { adj[a].push({to:b,w}); adj[b].push({to:a,w}); });
+}
+function collectBlock(start, dead){
+  const seen = new Set(), stack = [start];
+  while(stack.length){
+    const u = stack.pop();
+    if(seen.has(u) || dead.has(u)) continue;
+    seen.add(u);
+    adj[u].forEach(e => { if(!dead.has(e.to) && !seen.has(e.to)) stack.push(e.to); });
+  }
+  return [...seen].sort((a,b)=>a-b);
+}
+/* 双指针计数，同时记录指针移动过程 */
+function countPairs(arr){
+  const a = [...arr].sort((x,y)=>x-y);
+  let l = 0, r = a.length-1, res = 0;
+  const moves = [{l,r,ok:null,add:0,res:0}];
+  while(l < r){
+    if(a[l] + a[r] <= K){ res += r-l; moves.push({l,r,ok:true,add:r-l,res}); l++; }
+    else { moves.push({l,r,ok:false,add:0,res}); r--; }
+  }
+  return {res, moves, a};
+}
+/* 暴力求答案，用于校验动画的正确性 */
+function bruteForce(){
+  let cnt = 0;
+  const dist = {};
+  ids.forEach(s => {
+    const d = {[s]:0}, st = [s];
+    while(st.length){
+      const u = st.pop();
+      adj[u].forEach(e => { if(!(e.to in d)){ d[e.to] = d[u] + e.w; st.push(e.to); } });
+    }
+    dist[s] = d;
+  });
+  for(let i=0;i<ids.length;i++) for(let j=i+1;j<ids.length;j++)
+    if(dist[ids[i]][ids[j]] <= K) cnt++;
+  return cnt;
+}
+
+/* ================= 生成完整步骤序列 ================= */
+function buildSteps(){
+  const dead = new Set(), out = [];
+  let ans = 0, round = 0;
+  const base = {dead:[], block:[], groups:[], labels:{}, highlight:[], path:[], centroid:null,
+                vars:{}, arr:null, l:-1, r:-1, subrows:[], line:0};
+
+  const push = o => { out.push(Object.assign({}, base, {dead:[...dead]}, o, {round})); };
+
+  function decompose(entry, depth){
+    const block = collectBlock(entry, dead);
+    if(!block.length) return;
+    round++;
+    const N = block.length, common = {block, depth, line:1,
+      vars:{all:N, best:'—', c:'—', calc:'—', ans}};
+
+    push(Object.assign({}, common, {
+      phase:0, title:`第 ${depth} 层：处理 ${N} 个点的连通块`,
+      desc:`虚线框里是<strong>当前要解决的块</strong>。之前选中的重心已被"删除"（灰色），把树隔成互不相连的几块；块外的点暂时淡出。`,
+      hint:'点分治的"分"：每一层只关心这一块，块与块之间不会互相干扰。'
+    }));
+
+    /* --- 求 size 与 maxPart --- */
+    const sz = {}, parent = {}, child = {};
+    (function dfs(u,p){
+      sz[u] = 1; parent[u] = p; child[u] = [];
+      adj[u].forEach(e => {
+        if(e.to !== p && !dead.has(e.to)){ dfs(e.to,u); sz[u] += sz[e.to]; child[u].push(e.to); }
+      });
+    })(entry, 0);
+    const maxp = {};
+    block.forEach(u => {
+      let mx = N - sz[u];                     // 父亲方向那一块
+      child[u].forEach(v => mx = Math.max(mx, sz[v]));
+      maxp[u] = mx;
+    });
+    let best = Infinity, c = -1;
+    block.forEach(u => { if(maxp[u] < best){ best = maxp[u]; c = u; } });
+    const labels = {};
+    block.forEach(u => labels[u] = 'm=' + maxp[u]);
+    push(Object.assign({}, common, {
+      phase:1, title:'① 计算每个点的 maxPart',
+      desc:`以 ${entry} 为临时根做 DFS，得到子树大小 sz[u]。删掉 u 后最大的那块 = <strong>max(各子树 sz, N − sz[u])</strong>，标在节点旁边。`,
+      hint:`别忘了 N − sz[u]：它代表"父亲方向"那一大块，漏掉就会找错重心。`,
+      labels, vars:{all:N, best:'计算中', c:'—', calc:'—', ans}
+    }));
+
+    push(Object.assign({}, common, {
+      phase:1, title:`② 重心是 ${c}（maxPart = ${best}）`,
+      desc:`所有点里 <strong>${c} 的 maxPart 最小（${best} ≤ ${N}/2）</strong>。删掉它，剩下的每块都不会超过原规模的一半，递归深度被锁死在 O(log n)。`,
+      hint:'橙色脉冲 = 本轮选中的重心。它可能不唯一，任选一个都对。',
+      centroid:c, highlight:[c], labels,
+      vars:{all:N, best, c, calc:'—', ans}, line:3
+    }));
+
+    /* --- 删除重心、分组 --- */
+    dead.add(c);
+    const groups = [];
+    adj[c].forEach((e,i) => {
+      if(dead.has(e.to)) return;
+      const nodes = [], st = [[e.to, c, e.w]];
+      while(st.length){
+        const [u,p,d] = st.pop();
+        nodes.push({id:u, d});
+        adj[u].forEach(x => { if(x.to !== p && !dead.has(x.to)) st.push([x.to, u, d + x.w]); });
+      }
+      groups.push({entry:e.to, nodes:nodes.sort((a,b)=>a.id-b.id), color:GCOLORS[groups.length % GCOLORS.length]});
+    });
+    push(Object.assign({}, common, {
+      phase:2, title:'③ 删重心，树裂成 ' + groups.length + ' 组',
+      desc:`把 ${c} 标记成已删除（灰色虚线），与它相连的边断开。剩下的节点按"属于哪棵子树"染成不同颜色 —— 同组两点的路径<strong>不经过重心</strong>。`,
+      hint:'接下来只统计"跨组"或"一端是重心"的路径；同组内部的路径交给递归。',
+      dead:[...dead], groups, centroid:c, line:4
+    }));
+
+    /* --- 收集距离 --- */
+    const dlabels = {}; dlabels[c] = 'd=0';
+    groups.forEach(g => g.nodes.forEach(n => dlabels[n.id] = 'd=' + n.d));
+    push(Object.assign({}, common, {
+      phase:2, title:'④ 收集每个点到重心的距离',
+      desc:`对每组做一次 DFS，把距离 d 写在节点旁。经过重心 ${c} 的一条路径，长度正好等于<strong>两端点的 d 之和</strong> —— 于是路径问题变成了数组配对问题。`,
+      hint:'重心自己 d = 0，也要放进数组，这样 (重心, 某点) 的路径不会被漏掉。',
+      dead:[...dead], groups, centroid:c, labels:dlabels, line:6
+    }));
+
+    /* --- 全体排序 + 双指针 --- */
+    const allDs = [0].concat(...groups.map(g => g.nodes.map(n => n.d)));
+    const ca = countPairs(allDs);
+    const mid = ca.moves[Math.min(2, ca.moves.length-1)];
+    push(Object.assign({}, common, {
+      phase:3, title:`⑤ 全体排序，双指针数配对：count(all) = ${ca.res}`,
+      desc:`数组排序后放两个指针 l、r。若 <strong>all[l] + all[r] ≤ K</strong>，因为右边的数都不超过 all[r]，l 与 l+1…r 全部合格，一次加 r − l 对，然后 l++；否则 r−−。`,
+      hint:`本轮 K = ${K}，all[0] = 0（重心）。这一过程是 O(m log m)。`,
+      dead:[...dead], groups, centroid:c, labels:dlabels, line:11,
+      arr:ca.a, l:ca.moves[0].l, r:ca.moves[0].r,
+      subrows:[{text:`count(all) = ${ca.res}`, color:'#ffd43b'}]
+    }));
+    push(Object.assign({}, common, {
+      phase:3, title:`⑤ 指针推进中：累计 = ${mid.res} / ${ca.res}`,
+      desc:`l = ${mid.l}、r = ${mid.r} 时的判断：${mid.ok ? `all[l]+all[r] ≤ K，加 ${mid.add} 对并右移 l` : 'all[l]+all[r] > K，左移 r'}。如此反复，直到 l ≥ r。`,
+      hint:'双指针之所以成立，靠的是数组已排序：一次判断能"打包"一大批合格配对。',
+      dead:[...dead], groups, centroid:c, labels:dlabels, line:12,
+      arr:ca.a, l:mid.l, r:mid.r,
+      subrows:[{text:`count(all) = ${ca.res}`, color:'#ffd43b'}]
+    }));
+
+    /* --- 容斥 --- */
+    let sub = 0;
+    const subRows = [];
+    groups.forEach(g => {
+      const ds = g.nodes.map(n => n.d);
+      const r = countPairs(ds).res;
+      sub += r;
+      subRows.push({text:`组 [${ds.join(', ')}] 内部配对 = ${r}`, color:g.color});
+    });
+    subRows.push({text:`Σ count(组) = ${sub}`, color:'#ff6b6b'});
+    push(Object.assign({}, common, {
+      phase:4, title:`⑥ 容斥：减掉同组内部的 ${sub} 对`,
+      desc:`上一步把<strong>同一组内的两点</strong>也数进去了，但它们的路径只在组里绕，根本没经过重心 ${c}，属于递归要处理的部分。对每组单独再数一次，从总数里减掉。`,
+      hint:'顺序：先逐组减，再加全体。少这一步，答案一定偏大。',
+      dead:[...dead], groups, centroid:c, labels:dlabels, line:7,
+      arr:null, subrows:subRows
+    }));
+
+    /* --- 累加答案 --- */
+    const gain = ca.res - sub;
+    ans += gain;
+    push(Object.assign({}, common, {
+      phase:5, title:`⑦ Calc = ${ca.res} − ${sub} = ${gain}，累计 ans = ${ans}`,
+      desc:`经过重心 ${c} 且长度 ≤ ${K} 的点对共 <strong>${gain}</strong> 对，全部计入答案。它们不会在后面的递归里被重复统计，因为 ${c} 已被删掉，两端点分到了不同块。`,
+      hint:'每条路径恰好在"它经过的最上层重心"处被数一次 —— 这就是点分治不重不漏的原因。',
+      dead:[...dead], groups, centroid:c, labels:dlabels, line:8,
+      vars:{all:N, best, c, calc:gain, ans},
+      subrows:[{text:`+${ca.res} 全体　−${sub} 同组　= ${gain}`, color:'#25c2a0'}]
+    }));
+
+    /* --- 递归 --- */
+    push(Object.assign({}, common, {
+      phase:0, title:`⑧ 递归进入 ${groups.length} 个子块`,
+      desc:groups.length
+        ? `各块大小：${groups.map(g=>g.nodes.length+' 点').join(' / ')}。下一层会对每块<strong>重新求重心</strong>（形状变了，不能沿用 ${c}），重复同样的 ①～⑦。`
+        : '这一块只剩重心一个点，没有子树，递归到此结束。',
+      hint:'因为每块 ≤ 原来的一半，最多 log₂n 层就到底了。',
+      dead:[...dead], groups, centroid:c, line:9,
+      vars:{all:N, best, c, calc:gain, ans}
+    }));
+
+    groups.forEach(g => decompose(g.entry, depth+1));
+  }
+
+  decompose(ids[0], 0);
+  push({
+    phase:5, depth:0, round, title:`完成！答案 = ${ans} 对`,
+    desc:`所有重心都处理完毕，每个连通块都贡献过一次 Calc，累加得到最终答案。可以切换 K 或换一棵树再看一遍。`,
+    hint:'页面底部会把动画结果与"暴力枚举所有点对"的结果做比对。',
+    dead:[...dead], block:[], groups:[], centroid:null, labels:{}, highlight:[],
+    vars:{all:'—', best:'—', c:'—', calc:'—', ans}, line:9
+  });
+  return {steps:out, ans, brute:bruteForce()};
+}
+
+/* ================= SVG 初始化 ================= */
+function initSVG(){
+  const svg = $('svg');
+  svg.innerHTML = '';
+  nodeEls = {}; edgeEls = [];
+  blockRect = mk('rect', {class:'block-box', x:0, y:0, width:0, height:0});
+  svg.appendChild(blockRect);
+  edges.forEach(([a,b,w]) => {
+    const [x1,y1] = pos[a], [x2,y2] = pos[b];
+    const line = mk('line',{class:'edge',x1,y1,x2,y2});
+    const t = mk('text',{class:'w',x:(x1+x2)/2+9,y:(y1+y2)/2-5});
+    t.textContent = w;
+    svg.appendChild(line); svg.appendChild(t);
+    edgeEls.push({a,b,line,t});
+  });
+  ids.forEach(id => {
+    const [x,y] = pos[id], R = 19;
+    const g = mk('g',{class:'node'});
+    const halo = mk('circle',{class:'halo',cx:x,cy:y,r:23});
+    const disc = mk('circle',{class:'disc',cx:x,cy:y,r:R});
+    const num = mk('text',{class:'num',x,y}); num.textContent = id;
+    const badge = mk('text',{class:'badge',x:x+27,y:y-13});
+    const cross = mk('line',{class:'cross',x1:x-8,y1:y-8,x2:x+8,y2:y+8});
+    const cross2 = mk('line',{class:'cross',x1:x+8,y1:y-8,x2:x-8,y2:y+8});
+    g.append(halo,disc,num,cross,cross2,badge);
+    svg.appendChild(g);
+    nodeEls[id] = {g,disc,num,badge};
+  });
+}
+
+/* ================= 伪代码 ================= */
+const CODELINES = [
+  ['solve(entry):',''],
+  ['  all = size(entry)','当前块大小'],
+  ['  c = findRoot(entry)','maxPart 最小的点'],
+  ['  dead[c] = true','删除重心'],
+  ['  for each group of c:','按子树分组'],
+  ['    ds = distances(group, c)','收集距离'],
+  ['    ans -= count(ds)','★ 容斥减同组'],
+  ['  ans += count({0} ∪ all ds)','★ 加全体'],
+  ['  for each group: solve(group)','递归'],
+  ['',''],
+  ['count(ds): sort; l=0, r=end','排序 + 双指针'],
+  ['  while l < r:',''],
+  ['    if ds[l]+ds[r] <= K: res += r-l; l++','打包合格配对'],
+  ['    else: r--','右端点太大']
+];
+function initCode(){
+  $('code').innerHTML = CODELINES.map(([t,c],i) =>
+    `<span class="ln" data-i="${i}">${String(i+1).padStart(2,'0')} ${escapeHtml(t)}${c ? '  <span class="cm">// '+c+'</span>' : ''}</span>`
+  ).join('');
+}
+function escapeHtml(s){ return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+
+/* ================= 渲染一步 ================= */
+const PHASES = [
+  ['分 · 确定连通块','c4'], ['选 · 寻找重心','c2'], ['拆 · 删重心并分组',''],
+  ['数 · 双指针统计','c5'], ['减 · 容斥去重','c2'], ['果 · 累计答案','c3']
+];
+function render(s){
+  if(!s) return;
+  /* 块虚线框 */
+  const bb = s.block.length ? s.block.map(i=>pos[i]) : null;
+  if(bb){
+    const xs = bb.map(p=>p[0]), ys = bb.map(p=>p[1]);
+    const x = Math.min(...xs)-38, y = Math.min(...ys)-38;
+    blockRect.setAttribute('x',x); blockRect.setAttribute('y',y);
+    blockRect.setAttribute('width', Math.max(...xs)-Math.min(...xs)+76);
+    blockRect.setAttribute('height', Math.max(...ys)-Math.min(...ys)+76);
+    blockRect.style.opacity = '';   // 交回 CSS 控制（淡色填充 + 虚线边框）
+  } else blockRect.style.opacity = 0;
+
+  /* 分组映射 */
+  const gcolor = {};
+  (s.groups||[]).forEach((g,i) => g.nodes.forEach(n => gcolor[n.id] = g.color));
+  const deadSet = new Set(s.dead||[]), blockSet = new Set(s.block||[]);
+  const pathSet = new Set((s.path||[]).map(p=>p.join('-')));
+
+  /* 边 */
+  edgeEls.forEach(o => {
+    const deadEdge = deadSet.has(o.a) || deadSet.has(o.b);
+    const bothInBlock = blockSet.has(o.a) && blockSet.has(o.b);
+    const key1 = `${o.a}-${o.b}`, key2 = `${o.b}-${o.a}`;
+    let cls = 'edge';
+    if(pathSet.has(key1) || pathSet.has(key2)) cls += ' path';
+    else if(deadEdge) cls += ' cut';
+    else if(gcolor[o.a] && gcolor[o.a] === gcolor[o.b]) cls += ' group';
+    if(!bothInBlock && !deadEdge && !cls.includes('path')) cls += ' faint';
+    o.line.setAttribute('class',cls);
+    if(gcolor[o.a] && gcolor[o.a] === gcolor[o.b] && !cls.includes('cut') && !cls.includes('path'))
+      o.line.style.stroke = gcolor[o.a];
+    else o.line.style.stroke = '';
+    o.t.setAttribute('class','w' + (deadEdge ? ' faint' : (!bothInBlock ? ' faint' : '')));
+  });
+
+  /* 节点 */
+  ids.forEach(id => {
+    const n = nodeEls[id];
+    let cls = 'node';
+    if(!blockSet.has(id) && !deadSet.has(id)) cls += ' out';
+    if(deadSet.has(id)) cls += ' dead';
+    else if(gcolor[id]) cls += ' group';
+    if(id === s.centroid) cls += ' centroid';
+    if((s.highlight||[]).includes(id)) cls += ' focus';
+    n.g.setAttribute('class',cls);
+    n.g.style.setProperty('--gc', gcolor[id] || 'transparent');
+    n.badge.textContent = (s.labels||{})[id] || '';
+  });
+
+  /* 文本面板 */
+  $('phase').textContent = PHASES[s.phase][0];
+  $('phase').className = 'phase ' + PHASES[s.phase][1];
+  $('stepTitle').textContent = s.title;
+  $('stepDesc').innerHTML = s.desc;
+  $('stepHint').textContent = s.hint || '';
+  $('stageLabel').textContent = s.block.length
+    ? `第 ${s.depth} 层 · 当前块 ${s.block.length} 点${s.centroid ? ' · 重心 '+s.centroid : ''}`
+    : '全部处理完毕';
+
+  /* 变量 */
+  const v = s.vars || {};
+  const varDefs = [['all','当前块',v.all],['best','最小 maxPart',v.best],['c','重心',v.c],
+                   ['calc','本轮 Calc',v.calc],['ans','累计答案',v.ans],['K','距离上限',K]];
+  $('vars').innerHTML = varDefs.map(([k,label,val]) =>
+    `<div class="v ${k==='c'?'hot':''} ${k==='ans'?'ans':''}"><div class="k">${label}</div><div class="val">${val ?? '—'}</div></div>`
+  ).join('');
+
+  /* 数组格子 */
+  const arr = s.arr;
+  $('cells').innerHTML = arr ? arr.map((val,i) => {
+    const mark = (i===s.l && i===s.r) ? ' lr' : i===s.l ? ' l' : i===s.r ? ' r' : '';
+    const tag = i===s.l && i===s.r ? 'l/r' : i===s.l ? 'l' : i===s.r ? 'r' : '';
+    return `<div class="cell${mark}"><em>${tag}</em>${val}</div>`;
+  }).join('') : `<div style="color:var(--dim);font-size:11.5px">${s.subrows && s.subrows.length ? '本步展示各分组的容斥计算 ↓' : '（本步暂无数组）'}</div>`;
+  $('subrows').innerHTML = (s.subrows||[]).map(r =>
+    `<div class="subrow"><i class="chip" style="background:${r.color}"></i>${escapeHtml(r.text)}</div>`
+  ).join('');
+
+  /* 代码高亮 */
+  document.querySelectorAll('#code .ln').forEach(el =>
+    el.classList.toggle('on', Number(el.dataset.i) === s.line));
+  const onLine = document.querySelector('#code .ln.on');
+  if(onLine) $('code').scrollTop = Math.max(0, onLine.offsetTop - 72);
+
+  /* 控制条 */
+  $('counter').textContent = `${idx+1} / ${steps.length}`;
+  $('seek').value = idx;
+  document.querySelectorAll('.tl').forEach(b =>
+    b.className = 'tl' + (Number(b.dataset.round) === s.round ? ' on' :
+      (Number(b.dataset.first) <= idx ? ' done' : '')));
+  $('prev').disabled = idx === 0;
+  $('next').disabled = idx === steps.length-1;
+  $('play').textContent = playing ? '⏸ 暂停' : '▶ 播放';
+}
+
+/* ================= 播放器 ================= */
+function show(){ render(steps[idx]); }
+function pause(silent){ playing = false; clearInterval(timer); timer = null;
+  if(!silent && steps[idx]) render(steps[idx]); }
+function play(){
+  if(idx >= steps.length-1) idx = 0;
+  playing = true; clearInterval(timer);
+  timer = setInterval(() => {
+    if(idx < steps.length-1){ idx++; render(steps[idx]); }
+    else pause();
+  }, speed);
+  render(steps[idx]);
+}
+function goto(i){ idx = Math.max(0, Math.min(steps.length-1, i)); render(steps[idx]); }
+function rebuild(){
+  pause(true);   // 切换树/K 时旧步骤属于旧树，不要渲染它
+  const res = buildSteps();
+  steps = res.steps;
+  $('seek').max = steps.length-1;
+  $('verify').textContent = `动画结果 ${res.ans} 对 · 暴力枚举 ${res.brute} 对 · ${res.ans === res.brute ? '✓ 一致' : '✗ 不一致'}`;
+  $('verify').className = res.ans === res.brute ? 'ok' : 'bad';
+  /* 时间轴：每一轮一个跳转点 */
+  const rounds = [];
+  steps.forEach((s,i) => { if(!rounds.length || rounds[rounds.length-1].round !== s.round)
+    rounds.push({round:s.round, first:i, depth:s.depth, size:s.block.length}); });
+  $('timeline').innerHTML = rounds.map(r =>
+    `<button class="tl" data-round="${r.round}" data-first="${r.first}" title="第 ${r.depth} 层">${r.round}</button>`
+  ).join('');
+  document.querySelectorAll('.tl').forEach(b => b.onclick = () => { pause(); goto(Number(b.dataset.first)); });
+  initCode(); initSVG(); idx = 0; render(steps[0]);
+}
+
+/* ================= 事件 ================= */
+$('play').onclick = () => playing ? pause() : play();
+$('prev').onclick = () => { pause(); goto(idx-1); };
+$('next').onclick = () => { pause(); goto(idx+1); };
+$('first').onclick = () => { pause(); goto(0); };
+$('last').onclick = () => { pause(); goto(steps.length-1); };
+$('reset').onclick = () => { pause(); goto(0); };
+$('seek').oninput = e => { pause(); goto(Number(e.target.value)); };
+$('speed').oninput = e => { speed = 1120 - Number(e.target.value); if(playing) play(); };
+$('K').onchange = e => { K = Number(e.target.value); rebuild(); };
+$('treeSel').onchange = e => {
+  TREE = e.target.value; pos = TREES[TREE].pos; edges = TREES[TREE].edges;
+  buildAdj(); rebuild();
+};
+$('theme').onclick = () => {
+  document.body.classList.toggle('light');
+  $('theme').textContent = document.body.classList.contains('light') ? '切换深色' : '切换浅色';
+};
+document.addEventListener('keydown', e => {
+  if(e.target.tagName === 'SELECT') return;
+  if(e.code === 'Space'){ e.preventDefault(); playing ? pause() : play(); }
+  else if(e.key === 'ArrowRight'){ pause(); goto(idx+1); }
+  else if(e.key === 'ArrowLeft'){ pause(); goto(idx-1); }
+  else if(e.key.toLowerCase() === 'r'){ pause(); goto(0); }
+});
+
+/* ================= 启动 ================= */
+pos = TREES[TREE].pos; edges = TREES[TREE].edges;
+buildAdj();
+speed = 1120 - Number($('speed').value);
+rebuild();
+</script>
+</body>
+</html>

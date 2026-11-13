@@ -1,0 +1,493 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<title>点分治 · 图文讲义</title>
+<style>
+  @page { size: A4; margin: 0; }
+  * { box-sizing: border-box; }
+  html, body { margin:0; padding:0; }
+  body {
+    font-family: "Microsoft YaHei", "PingFang SC", "Hiragino Sans GB", sans-serif;
+    color:#23303d; background:#fff; font-size:13.5px; line-height:1.7;
+    -webkit-print-color-adjust: exact; print-color-adjust: exact;
+  }
+  .page {
+    width:210mm; height:297mm; padding:15mm 17mm 16mm;
+    position:relative; overflow:hidden; break-after:page; background:#fff;
+  }
+  .page:last-child { break-after:auto; }
+  .hd { display:flex; justify-content:space-between; align-items:center; font-size:11px; color:#8b97a5; letter-spacing:.5px; border-bottom:1px solid #e9edf2; padding-bottom:7px; margin-bottom:16px; }
+  .hd b { color:#3b5bdb; font-weight:700; }
+  .ft { position:absolute; left:17mm; right:17mm; bottom:9mm; display:flex; justify-content:space-between; font-size:10.5px; color:#9aa5b1; border-top:1px solid #e9edf2; padding-top:7px; }
+  h1 { font-size:44px; line-height:1.15; margin:6px 0 4px; color:#1b2b4a; letter-spacing:2px; }
+  h2 { font-size:24px; margin:0 0 3px; color:#1b2b4a; letter-spacing:.5px; }
+  h3 { font-size:15px; margin:14px 0 6px; color:#2b3a55; }
+  .sub { color:#5c6b7f; font-size:14px; margin:0 0 14px; }
+  .kicker { display:inline-block; background:#eef2ff; color:#3b5bdb; font-size:11.5px; font-weight:700; padding:3px 10px; border-radius:20px; letter-spacing:1px; }
+  .en { font-size:13px; color:#98a3b3; letter-spacing:2px; font-family:Consolas,monospace; }
+  p { margin:7px 0; }
+  .lead { font-size:14.5px; color:#3d4b5e; }
+  strong { color:#1b2b4a; }
+  .hl { color:#e8590c; font-weight:700; }
+  .hlb { color:#3b5bdb; font-weight:700; }
+  .card { background:#f8fafc; border:1px solid #e3e9f1; border-radius:10px; padding:12px 14px; break-inside:avoid; }
+  .grid3 { display:grid; grid-template-columns:repeat(3,1fr); gap:10px; }
+  .grid2 { display:grid; grid-template-columns:repeat(2,1fr); gap:10px; }
+  .mini { background:#fff; border:1px solid #e3e9f1; border-radius:9px; padding:10px 12px; }
+  .mini .num { font-size:11px; font-weight:700; color:#3b5bdb; letter-spacing:1px; }
+  .mini .t { font-weight:700; font-size:14px; margin:2px 0 4px; }
+  .mini .d { font-size:12px; color:#5c6b7f; line-height:1.55; }
+  .tip { background:#fff8f1; border-left:4px solid #f59f00; border-radius:0 8px 8px 0; padding:10px 13px; font-size:12.5px; color:#6b5327; break-inside:avoid; }
+  .tip.blue { background:#f1f5ff; border-left-color:#4c6ef5; color:#33437a; }
+  .tip.red { background:#fff2f0; border-left-color:#e8590c; color:#7a3a20; }
+  .formula { background:#1b2b4a; color:#fff; border-radius:9px; padding:11px 16px; text-align:center; font-size:15px; letter-spacing:.5px; margin:10px 0; font-family:Consolas,"Microsoft YaHei",monospace; }
+  .formula .o { color:#ffd43b; }
+  .formula .g { color:#69db7c; }
+  table { width:100%; border-collapse:collapse; font-size:12.3px; margin:8px 0; break-inside:avoid; }
+  th { background:#eef2ff; color:#2b3a55; text-align:left; padding:7px 9px; font-weight:700; }
+  td { border-bottom:1px solid #e9edf2; padding:6px 9px; vertical-align:top; color:#4a586b; }
+  pre { background:#f6f8fb; border:1px solid #e3e9f1; border-radius:8px; padding:10px 12px; font-family:Consolas,"Courier New",monospace; font-size:11px; line-height:1.42; color:#2b3a55; margin:7px 0; white-space:pre; overflow:hidden; }
+  .k { color:#7048e8; font-weight:700; } .c { color:#8b97a5; } .s { color:#0ca678; } .n { color:#e8590c; }
+  figure { margin:8px 0; text-align:center; break-inside:avoid; }
+  figcaption { font-size:11.5px; color:#8b97a5; margin-top:2px; }
+  .tree-figure svg { width:100%; height:auto; display:block; }
+  .tag { display:inline-block; font-size:11px; font-weight:700; padding:2px 8px; border-radius:5px; background:#eef2ff; color:#3b5bdb; margin-right:5px; }
+  .tag.o { background:#fff0e6; color:#e8590c; } .tag.g { background:#e6fcf5; color:#0b7a59; } .tag.p { background:#f3f0ff; color:#6741d9; }
+  ol, ul { margin:6px 0; padding-left:20px; }
+  li { margin:4px 0; }
+  .step-row { display:flex; gap:8px; align-items:stretch; margin:10px 0; }
+  .step-box { flex:1; background:#f8fafc; border:1px solid #e3e9f1; border-radius:9px; padding:10px 11px; position:relative; }
+  .step-box .b { display:inline-block; width:20px; height:20px; border-radius:50%; background:#3b5bdb; color:#fff; text-align:center; line-height:20px; font-size:11px; font-weight:700; margin-bottom:5px; }
+  .step-box .t { font-weight:700; font-size:13.5px; margin-bottom:3px; }
+  .step-box .d { font-size:11.8px; color:#5c6b7f; line-height:1.5; }
+  .arrow { align-self:center; color:#adb5bd; font-size:19px; }
+  .bars { display:flex; align-items:flex-end; gap:5px; height:76px; margin:6px 0 2px; }
+  .bar { flex:1; background:#4c6ef5; border-radius:4px 4px 0 0; position:relative; color:#fff; font-size:10.5px; text-align:center; }
+  .bar span { position:absolute; top:-17px; left:0; right:0; color:#3b5bdb; font-weight:700; font-size:11px; }
+  .bar.o { background:#e8590c; } .bar.g { background:#0ca678; } .bar.p { background:#7048e8; }
+  .small { font-size:11.7px; color:#6b7787; }
+  .road { display:flex; gap:6px; margin-top:10px; }
+  .road div { flex:1; text-align:center; font-size:11px; color:#4a586b; background:#f1f4f9; border-radius:6px; padding:7px 3px; }
+  .road div b { display:block; color:#3b5bdb; font-size:12px; }
+  /* ---- 打印紧凑适配（保证每页内容不溢出 A4） ---- */
+  .page { padding:11mm 17mm 14mm; }
+  body { font-size:12.8px; line-height:1.6; }
+  .hd { margin-bottom:11px; padding-bottom:6px; }
+  h2 { font-size:22px; }
+  h3 { font-size:14px; margin:10px 0 4px; }
+  p { margin:5px 0; }
+  .lead { font-size:13.8px; }
+  .card { padding:9px 12px; }
+  .mini { padding:8px 10px; }
+  .mini .d { font-size:11.6px; }
+  .tip { padding:8px 11px; }
+  .formula { padding:8px 14px; margin:7px 0; }
+  table { font-size:11.8px; margin:5px 0; }
+  th { padding:5px 8px; }
+  td { padding:4px 8px; }
+  pre { font-size:10px; line-height:1.32; padding:8px 10px; margin:6px 0; }
+  figure { margin:5px 0; }
+  .tree-figure svg { width:88%; margin:0 auto; }
+  .bars { height:62px; }
+  .step-row { margin:7px 0; }
+  ol, ul { margin:4px 0; }
+  li { margin:3px 0; }
+  .road { margin-top:7px; }
+</style>
+</head>
+<body>
+
+<!-- ============ P1 封面 ============ -->
+<section class="page">
+  <div class="hd"><span><b>算法图解</b> · 树上分治</span><span>01 / 导读</span></div>
+  <div class="kicker">CENTROID DECOMPOSITION</div>
+  <h1>点分治</h1>
+  <div class="en" style="margin-bottom:18px">把一棵大树，拆成一堆小问题</div>
+
+  <div class="card" style="background:#f1f5ff;border-color:#dbe4ff;margin-bottom:14px">
+    <p class="lead" style="margin:0"><strong>一句话说清：</strong>每次挑出当前树的<span class="hl">重心</span>当"关卡"，只统计<strong>跨过这道关卡</strong>的路径；没跨过去的路径，一定整条躲在某一棵子树里，于是<span class="hlb">把重心删掉，对每块递归</span>再做一遍。</p>
+  </div>
+
+  <figure class="tree-figure" data-tree="cover"></figure>
+  <p class="small" style="text-align:center;margin-top:-2px">图中 <span style="color:#e8590c;font-weight:700">橙色</span> 是重心；删掉它，树裂成三个大小相近的小块（蓝 / 绿 / 紫）。</p>
+
+  <div class="grid3" style="margin-top:14px">
+    <div class="mini"><div class="num">WHAT</div><div class="t">它解决什么</div><div class="d">树上"<strong>路径</strong>"的计数与最值：距离 ≤ K 的点对、路径和等于 K、最长合法路径……</div></div>
+    <div class="mini"><div class="num">HOW</div><div class="t">核心武器</div><div class="d">树的<strong>重心</strong>：删掉它后最大连通块 ≤ 原规模的一半，保证递归只有 log n 层。</div></div>
+    <div class="mini"><div class="num">COST</div><div class="t">代价</div><div class="d">每层 O(n log n)，共 O(log n) 层 → 总复杂度 <strong>O(n log² n)</strong>，n = 10⁵ 也轻松跑。</div></div>
+  </div>
+
+  <h3>这份讲义怎么读</h3>
+  <div class="road">
+    <div><b>①</b>先看一道题</div><div><b>②</b>认识重心</div><div><b>③</b>三步走流程</div><div><b>④</b>统计与去重</div><div><b>⑤</b>代码与坑</div>
+  </div>
+
+  <div class="tip blue" style="margin-top:16px"><strong>配套动画：</strong>同目录下的 <strong>点分治动画演示.html</strong> 用一棵带权树逐步播放"找重心 → 数路径 → 减重复 → 递归"，可单步、调速、跳转。建议一边读讲义一边点着看。</div>
+
+  <div class="ft"><span>点分治 · 图文讲义</span><span>第 1 页 / 共 8 页</span></div>
+</section>
+
+<!-- ============ P2 问题 ============ -->
+<section class="page">
+  <div class="hd"><span><b>01</b> 从一道题说起</span><span>02 / 问题</span></div>
+  <h2>为什么树上的路径这么难数？</h2>
+  <p class="sub">经典例题：Luogu P4178 / POJ 1741「Tree」</p>
+
+  <div class="card" style="border-left:4px solid #3b5bdb">
+    <strong>题目</strong>　给一棵 <strong>n ≤ 100000</strong> 个节点的树，边有正整数权值，问有多少对点 <em>(u, v)</em>，满足它们之间的<strong>路径长度 ≤ K</strong>？（u &lt; v）
+  </div>
+
+  <p>树上任意两点之间<strong>只有一条简单路径</strong>，所以"距离"是明确的。问题在于：路径数量是 O(n²) 级别的，直接两两枚举、逐条走一遍，复杂度 O(n²) 甚至 O(n³)，n = 10⁵ 时必然超时。</p>
+
+  <figure class="tree-figure" data-tree="path"></figure>
+  <p class="small" style="text-align:center;margin-top:-2px">一次枚举：点 11 到点 13 的唯一路径被高亮，长度 = 1 + 1 + 2 + 3 + 1 + 2 = <strong>10</strong>。要数清所有这样的组合，得换个思路。</p>
+
+  <h3>关键的分类想法</h3>
+  <p>随便挑一个点 <span class="hlb">c</span> 当"关卡"，那么任意一条路径，必然属于下面两类之一：</p>
+  <div class="grid2">
+    <div class="mini" style="background:#f1f5ff;border-color:#dbe4ff"><div class="t" style="color:#3b5bdb">A · 经过 c</div><div class="d">两端点在 c 的<strong>不同子树</strong>里（或一端就是 c）。这类路径可以拆成"到 c 的距离之和"，一次性批量统计。</div></div>
+    <div class="mini" style="background:#fff8f1;border-color:#ffe8cc"><div class="t" style="color:#e8590c">B · 不经过 c</div><div class="d">整条路径完全落在 c 的<strong>某一棵子树内部</strong>。把 c 删掉，它就是一个规模更小的同类问题 → 递归！</div></div>
+  </div>
+
+  <div class="formula">所有路径 <span class="o">=</span> 经过 c 的路径 <span class="o">+</span> 各子树内部的路径（递归）</div>
+
+  <div class="tip"><strong>那 c 该挑谁？</strong>如果随便挑一个叶子，删掉它剩下的块还是 n−1 个点，递归 10⁵ 层，白忙一场。<span class="hl">必须挑"最居中"的点</span>，让每块都至少减半 —— 这就是<strong>树的重心</strong>。另外每层都要重新挑 c，所以是"分治"，不是一次 DFS。</div>
+
+  <div class="ft"><span>点分治 · 图文讲义</span><span>第 2 页 / 共 8 页</span></div>
+</section>
+
+<!-- ============ P3 重心 ============ -->
+<section class="page">
+  <div class="hd"><span><b>02</b> 核心工具：树的重心</span><span>03 / 重心</span></div>
+  <h2>重心 = 把树"切得最匀"的那个点</h2>
+  <p class="sub">定义、性质、求法，一次讲清</p>
+
+  <div class="grid2">
+    <div class="card"><div class="tag">定义</div><p style="margin:6px 0 0">删掉点 u 后，树会裂成若干个连通块。记其中<strong>最大块的大小</strong>为 <em>maxPart(u)</em>。<span class="hl">使 maxPart 最小的点</span>，就是这棵树的重心。</p></div>
+    <div class="card"><div class="tag o">性质</div><p style="margin:6px 0 0">重心的每个连通块大小都 <strong>≤ n / 2</strong>。所以每递归一层，规模至少减半 → 递归深度 <strong>≤ log₂ n</strong>（n = 10⁵ 时不超过 17 层）。</p></div>
+  </div>
+
+  <figure class="tree-figure" data-tree="cut"></figure>
+  <p class="small" style="text-align:center;margin-top:-2px">13 个点的树：删掉重心 ①，得到 <strong>4 / 4 / 4</strong> 三块，最大块 4 ≤ 6.5；若改删 ②，最大块变成 <strong>9</strong>，显然不够"匀"。</p>
+
+  <h3>怎么求：一次 DFS 就够</h3>
+  <p>把当前连通块临时以任意点当根，DFS 算出每棵子树大小 <em>sz[u]</em>。删掉 u 后，除了它的各个子树，还有"父亲方向"那一大块，大小是 <em>all − sz[u]</em>（all = 当前连通块总点数）。</p>
+
+  <div class="formula">maxPart(u) <span class="o">=</span> max( <span class="g">max sz[v]</span> , <span class="g">all − sz[u]</span> )　→　取最小值对应的 u</div>
+
+  <div class="grid2">
+    <div class="mini"><div class="t">① 先算规模</div><div class="d"><code>getSize(entry, 0)</code> 得到 <code>all = sz[entry]</code>；已被删除的重心要跳过。</div></div>
+    <div class="mini"><div class="t">② 再挑最优</div><div class="d">DFS 时顺手更新 <code>maxPart[u]</code>，全程维护最小值，得到重心 <code>root</code>。</div></div>
+  </div>
+
+  <div class="tip blue"><strong> intuition（直觉）：</strong>想象一棵树吊在一根绳上，重心就是那个能让树平衡悬挂的点。它保证"往任意一边走，剩下的点都不会超过一半"。这就是点分治复杂度的全部秘密。</div>
+
+  <h3>两个容易忽略的细节</h3>
+  <ul>
+    <li><strong>重心可能有两个</strong>（例如一条偶数个点的链，中间两点都合格），任选其一即可，不影响正确性与复杂度。</li>
+    <li><strong>每层都要重算</strong>：删掉旧重心后，子树的形状变了，<code>all</code> 也变了，必须重新 DFS 求新重心，不能沿用上层的编号。</li>
+  </ul>
+
+  <div class="ft"><span>点分治 · 图文讲义</span><span>第 3 页 / 共 8 页</span></div>
+</section>
+
+<!-- ============ P4 三步走 ============ -->
+<section class="page">
+  <div class="hd"><span><b>03</b> 点分治三步走</span><span>04 / 流程</span></div>
+  <h2>分解 → 统计 → 递归</h2>
+  <p class="sub">整个算法就是这三步反复执行</p>
+
+  <div class="step-row">
+    <div class="step-box"><div class="b">1</div><div class="t">找重心</div><div class="d">在当前连通块里求重心 <em>c</em>，把它标记成"已删除"（<code>dead[c] = true</code>）。</div></div>
+    <div class="arrow">▶</div>
+    <div class="step-box"><div class="b">2</div><div class="t">统计经过 c 的路径</div><div class="d">收集各点到 c 的距离，用排序 + 双指针数出 <em>d[u] + d[v] ≤ K</em> 的对数，再<strong>扣掉同一子树内的重复</strong>。</div></div>
+    <div class="arrow">▶</div>
+    <div class="step-box"><div class="b">3</div><div class="t">递归各子树</div><div class="d">c 被删后剩下的每个连通块，各自回到第 1 步。</div></div>
+  </div>
+
+  <div class="formula">Ans(块) <span class="o">=</span> Calc(重心 c) <span class="o">+</span> Σ Ans(c 删掉后的第 i 块)</div>
+
+  <figure class="tree-figure" data-tree="levels"></figure>
+  <p class="small" style="text-align:center;margin-top:-2px">递归树示意：第 0 层 13 个点 → 第 1 层 3 块各 4 个点 → 第 2 层继续对半切……每层总点数仍是 O(n)，但层数只有 O(log n)。</p>
+
+  <h3>为什么既不重复、也不遗漏？</h3>
+  <table>
+    <tr><th style="width:26%">疑问</th><th>答案</th></tr>
+    <tr><td><strong>会漏吗？</strong></td><td>任取一条路径，从最上层往下看，它要么经过当前重心（被 <em>Calc</em> 抓住），要么整体落在某块里（被递归抓住）。二者必居其一，所以不漏。</td></tr>
+    <tr><td><strong>会重吗？</strong></td><td>一条路径第一次遇到"经过的重心"时就被统计；之后重心被删除，路径两端落入不同块，不可能再被任何一次 <em>Calc</em> 数到。所以恰好一次。</td></tr>
+    <tr><td><strong>Calc 里的重复是什么？</strong></td><td>两个点在<strong>同一棵子树</strong>时，它们的路径根本不经过 c，但距离数组里仍会被配对。必须单独减掉（容斥），详见下一页。</td></tr>
+  </table>
+
+  <div class="tip red"><strong>最核心的一句话：</strong>点分治 = 「以重心为分界，把路径按<strong>最高经过的分界点</strong>归类」。每条路径只属于一个分界点，因此可以直接相加，不需要任何去重数据结构。</div>
+
+  <div class="ft"><span>点分治 · 图文讲义</span><span>第 4 页 / 共 8 页</span></div>
+</section>
+
+<!-- ============ P5 Calc ============ -->
+<section class="page">
+  <div class="hd"><span><b>04</b> 统计经过重心的路径</span><span>05 / Calc</span></div>
+  <h2>Calc(c)：数组、双指针与"减重复"</h2>
+  <p class="sub">设 K = 6，用第 1 页那棵树、重心 ① 来走一遍</p>
+
+  <h3>第 1 步：按子树分组，收集到重心的距离</h3>
+  <figure class="tree-figure" data-tree="dist"></figure>
+  <p class="small" style="text-align:center;margin-top:-2px">节点旁标注的是到重心 ① 的距离 d。重心自己 d = 0。三条分支各自是一组。</p>
+
+  <div class="grid3" style="margin:8px 0">
+    <div class="mini" style="border-top:3px solid #4c6ef5"><div class="t">蓝组（经 ②）</div><div class="d">d = [2, 3, 4, 4]</div></div>
+    <div class="mini" style="border-top:3px solid #0ca678"><div class="t">绿组（经 ③）</div><div class="d">d = [1, 2, 3, 5]</div></div>
+    <div class="mini" style="border-top:3px solid #7048e8"><div class="t">紫组（经 ④）</div><div class="d">d = [3, 4, 5, 6]</div></div>
+  </div>
+
+  <h3>第 2 步：全部放一起排序，双指针数配对</h3>
+  <p>把重心 0 和所有 d 放进数组 <em>all</em>，排序后用左右指针 <em>l, r</em>：若 <code>all[l] + all[r] ≤ K</code>，因为后面的数不会超过 <code>all[r]</code>，所以 <code>l</code> 与 <code>l+1…r</code> 全都合格，一次加 <code>r − l</code> 对，然后 <code>l++</code>；否则说明右端点太大，<code>r−−</code>。单次 O(m log m)。</p>
+  <div class="bars">
+    <div class="bar" style="height:7px"><span>0</span></div><div class="bar g" style="height:17px"><span>1</span></div><div class="bar" style="height:26px"><span>2</span></div><div class="bar g" style="height:26px"><span>2</span></div><div class="bar" style="height:34px"><span>3</span></div><div class="bar g" style="height:34px"><span>3</span></div><div class="bar p" style="height:34px"><span>3</span></div><div class="bar" style="height:42px"><span>4</span></div><div class="bar" style="height:42px"><span>4</span></div><div class="bar p" style="height:42px"><span>4</span></div><div class="bar p" style="height:50px"><span>5</span></div><div class="bar g" style="height:50px"><span>5</span></div><div class="bar p" style="height:58px"><span>6</span></div>
+  </div>
+  <p class="small">排序后的 all 数组（颜色对应所属分支）。例如 l 指向 0、r 指向 6：0 + 6 ≤ 6，说明重心与其余 12 个点全都合格，一次加 12 对。</p>
+
+  <h3>第 3 步：容斥，把"没经过重心"的配对减掉</h3>
+  <div class="card" style="background:#fff8f1;border-color:#ffe8cc">
+    <p style="margin:0">同组两点（比如 ⑤ 和 ⑥）的路径只在蓝组内部绕，<strong>不经过重心 ①</strong>，却被上一步算进去了。所以对每一组单独再做一次 <code>count(组)</code>，从总数里<span class="hl">减去</span>：</p>
+    <div class="formula" style="margin:9px 0 0;font-size:14px">Calc(c) <span class="o">=</span> count(all ∪ {0}) <span class="o">−</span> Σ count(每一组)</div>
+  </div>
+
+  <div class="card" style="padding:7px 11px;background:#f6f8fb">
+    <div class="small"><span class="tag">伪代码</span> <code>all = {0} ∪ 各组距离</code> → 对每组 <code>res −= count(组)</code> → 最后 <code>res += count(all)</code>。完整可编译实现见下一页。</div>
+  </div>
+
+  <div class="tip"><strong>别忘了 (重心, 某点) 这类路径：</strong>它确实经过 c，必须计入。把 <code>0</code> 放进 all 就能自动覆盖，不用特判。</div>
+
+  <div class="ft"><span>点分治 · 图文讲义</span><span>第 5 页 / 共 8 页</span></div>
+</section>
+
+<!-- ============ P6 代码 ============ -->
+<section class="page">
+  <div class="hd"><span><b>05</b> 完整代码</span><span>06 / 实现</span></div>
+  <h2>一份能过的 C++ 模板</h2>
+  <p class="sub">对应「距离 ≤ K 的点对数」，n ≤ 10⁵，答案用 long long</p>
+
+  <pre style="font-size:9.7px;line-height:1.28"><span class="k">const int</span> N=<span class="n">100005</span>, INF=<span class="n">1</span>&lt;&lt;<span class="n">30</span>;
+<span class="k">struct</span> Edge{<span class="k">int</span> to,w;}; vector&lt;Edge&gt; g[N];
+<span class="k">bool</span> dead[N]; <span class="c">// 已删除的重心</span>
+<span class="k">int</span> sz[N], maxp[N], all, best, root, K; <span class="k">long long</span> ans;
+
+<span class="c">// ① 算当前连通块大小</span>
+<span class="k">void</span> getSize(<span class="k">int</span> u,<span class="k">int</span> fa){
+  sz[u]=<span class="n">1</span>;
+  <span class="k">for</span>(<span class="k">auto</span> e:g[u]) <span class="k">if</span>(e.to!=fa&amp;&amp;!dead[e.to]){ getSize(e.to,u); sz[u]+=sz[e.to]; }
+}
+<span class="c">// ② 同一个 DFS 里顺手挑重心</span>
+<span class="k">void</span> findRoot(<span class="k">int</span> u,<span class="k">int</span> fa){
+  sz[u]=<span class="n">1</span>; maxp[u]=<span class="n">0</span>;
+  <span class="k">for</span>(<span class="k">auto</span> e:g[u]) <span class="k">if</span>(e.to!=fa&amp;&amp;!dead[e.to]){
+    findRoot(e.to,u); sz[u]+=sz[e.to];
+    maxp[u]=max(maxp[u],sz[e.to]);
+  }
+  maxp[u]=max(maxp[u],all-sz[u]);        <span class="c">// ★ 父亲方向那一块</span>
+  <span class="k">if</span>(maxp[u]&lt;best) best=maxp[u], root=u;
+}
+<span class="c">// ③ 收集一组内所有点到重心的距离</span>
+<span class="k">void</span> getDis(<span class="k">int</span> u,<span class="k">int</span> fa,<span class="k">int</span> d,vector&lt;<span class="k">int</span>&gt;&amp; ds){
+  ds.push_back(d);
+  <span class="k">for</span>(<span class="k">auto</span> e:g[u]) <span class="k">if</span>(e.to!=fa&amp;&amp;!dead[e.to]) getDis(e.to,u,d+e.w,ds);
+}
+<span class="c">// ④ 排序 + 双指针：数出和 ≤ K 的配对数</span>
+<span class="k">long long</span> countPairs(vector&lt;<span class="k">int</span>&gt; ds){
+  sort(ds.begin(),ds.end()); <span class="k">long long</span> res=<span class="n">0</span>;
+  <span class="k">int</span> l=<span class="n">0</span>, r=(<span class="k">int</span>)ds.size()-<span class="n">1</span>;
+  <span class="k">while</span>(l&lt;r){ <span class="k">if</span>(ds[l]+ds[r]&lt;=K) res+=r-l,l++; <span class="k">else</span> r--; }
+  <span class="k">return</span> res;
+}
+<span class="c">// ⑤ 统计经过重心的路径（含容斥）</span>
+<span class="k">long long</span> calc(<span class="k">int</span> c){
+  vector&lt;<span class="k">int</span>&gt; allv{<span class="n">0</span>}; <span class="k">long long</span> res=<span class="n">0</span>;
+  <span class="k">for</span>(<span class="k">auto</span> e:g[c]) <span class="k">if</span>(!dead[e.to]){
+    vector&lt;<span class="k">int</span>&gt; sub; getDis(e.to,c,e.w,sub);
+    res-=countPairs(sub);                  <span class="c">// ★ 减同组重复</span>
+    allv.insert(allv.end(),sub.begin(),sub.end());
+  }
+  <span class="k">return</span> res+countPairs(allv);
+}
+<span class="c">// ⑥ 主流程：找重心 → 删 → 统计 → 递归</span>
+<span class="k">void</span> solve(<span class="k">int</span> entry){
+  getSize(entry,<span class="n">0</span>); all=sz[entry];   <span class="c">// ★ 每层重算规模</span>
+  best=INF; findRoot(entry,<span class="n">0</span>);
+  <span class="k">int</span> c=root; dead[c]=<span class="k">true</span>;          <span class="c">// ★ 先删再算</span>
+  ans+=calc(c);
+  <span class="k">for</span>(<span class="k">auto</span> e:g[c]) <span class="k">if</span>(!dead[e.to]) solve(e.to);
+}
+<span class="c">// main: 读 n、K 与边 → solve(1) → 输出 ans</span></pre>
+
+  <div class="grid2" style="margin-top:10px">
+    <div class="tip red" style="margin:0"><strong>三个 ★ 是灵魂：</strong>① <code>all − sz[u]</code> 补上父亲方向；② 容斥减同组；③ 每层重算 <code>all</code> 并先标记 <code>dead</code>。少一个就错。</div>
+    <div class="tip blue" style="margin:0"><strong>为什么先删再统计？</strong><code>dead[c]=true</code> 后，<code>getDis</code> 不会走回已处理的块，各块天然被隔开。</div>
+  </div>
+
+  <div class="ft"><span>点分治 · 图文讲义</span><span>第 6 页 / 共 8 页</span></div>
+</section>
+
+<!-- ============ P7 复杂度与坑 ============ -->
+<section class="page">
+  <div class="hd"><span><b>06</b> 复杂度 · 易错点 · 应用</span><span>07 / 进阶</span></div>
+  <h2>它为什么快，以及哪里最容易翻车</h2>
+
+  <h3>复杂度推导</h3>
+  <table>
+    <tr><th style="width:22%">环节</th><th style="width:26%">单层代价</th><th>说明</th></tr>
+    <tr><td>找重心 / 收集距离</td><td><strong>O(m)</strong></td><td>当前块每个点恰好被访问常数次。</td></tr>
+    <tr><td>排序 + 双指针</td><td><strong>O(m log m)</strong></td><td>每层对若干组分别排序，总和不超过 O(m log m)。</td></tr>
+    <tr><td>递归层数</td><td><strong>O(log n)</strong></td><td>重心保证每块 ≤ 一半。</td></tr>
+    <tr><td>合计</td><td><strong>O(n log² n)</strong></td><td>每层所有块加起来是 O(n) 个点，共 log n 层。</td></tr>
+  </table>
+
+  <div class="card" style="margin:10px 0">
+    <div class="small" style="margin-bottom:6px">n = 100000 时的量级对比（示意）</div>
+    <div style="display:flex;align-items:center;gap:8px;margin:5px 0"><span style="width:110px;font-size:11.5px">暴力 O(n²)</span><div style="flex:1;background:#ffe3e3;border-radius:4px"><div style="width:100%;background:#e8590c;color:#fff;font-size:11px;padding:3px 7px;border-radius:4px">≈ 10¹⁰ 次</div></div></div>
+    <div style="display:flex;align-items:center;gap:8px;margin:5px 0"><span style="width:110px;font-size:11.5px">点分治 O(nlog²n)</span><div style="flex:1;background:#e6fcf5;border-radius:4px"><div style="width:6%;min-width:96px;background:#0ca678;color:#fff;font-size:11px;padding:3px 7px;border-radius:4px">≈ 3×10⁷ 次</div></div></div>
+  </div>
+
+  <h3>六个高频坑</h3>
+  <div class="grid2" style="gap:8px">
+    <div class="mini"><div class="t">1 · 忘记 <code>all − sz[u]</code></div><div class="d">只比下方子树，会把"父亲方向"那一大块漏掉，找出的重心是错的。</div></div>
+    <div class="mini"><div class="t">2 · 忘记容斥</div><div class="d">同一子树内的配对没减掉，答案偏大。顺序：先减各组，再加全体。</div></div>
+    <div class="mini"><div class="t">3 · 没有重算 all / sz</div><div class="d">递归进了新块，却沿用上层的 <code>all</code>，重心立刻算歪。</div></div>
+    <div class="mini"><div class="t">4 · dead 标记时机</div><div class="d">必须<strong>先</strong> <code>dead[c]=true</code> 再 <code>calc</code> 与递归，否则 DFS 会越界回到已处理区域。</div></div>
+    <div class="mini"><div class="t">5 · 答案溢出</div><div class="d">n = 10⁵ 时点对可达 5×10⁹，<code>ans</code> 与 <code>res</code> 都要 <code>long long</code>。</div></div>
+    <div class="mini"><div class="t">6 · 边权 / 距离剪枝</div><div class="d">收集距离时若 <code>d &gt; K</code> 可提前不加入数组（对 ≤ K 题型）；有 0 权或负权时不能这么做。</div></div>
+  </div>
+
+  <h3>还能变形到哪些题</h3>
+  <table>
+    <tr><th style="width:34%">题型</th><th>改造点</th></tr>
+    <tr><td>路径长度 <strong>恰好 = K</strong></td><td>把 <code>countPairs</code> 换成"和 = K"的双指针 / 桶计数，容斥不变。</td></tr>
+    <tr><td>求<strong>最短</strong>合法路径 / 最长合法路径</td><td>维护分组最小距离，用桶或数组打标记，不必排序。</td></tr>
+    <tr><td>路径上颜色数、点权和等约束</td><td>收集距离时附带额外状态，用桶或哈希表统计。</td></tr>
+    <tr><td>带修改（换颜色 / 改点权）</td><td><strong>动态点分治</strong>：把分解结构建成"点分树"，每个重心挂数据结构维护子树信息。</td></tr>
+  </table>
+
+  <div class="tip blue"><strong>提速一个小技巧：</strong>若 K 不大，用桶数组代替排序，每层可降到 O(m)，总复杂度 <strong>O(n log n)</strong>。竞赛里更常见的仍是 O(n log² n) 写法，简单且够快。</div>
+
+  <div class="ft"><span>点分治 · 图文讲义</span><span>第 7 页 / 共 8 页</span></div>
+</section>
+
+<!-- ============ P8 速查 ============ -->
+<section class="page">
+  <div class="hd"><span><b>07</b> 一页纸速查</span><span>08 / 小结</span></div>
+  <h2>记住这四句话就够了</h2>
+
+  <div class="grid2" style="gap:10px;margin-top:12px">
+    <div class="card" style="border-top:3px solid #3b5bdb"><div class="tag">① 分界</div><p style="margin:6px 0 0">每层选<strong>重心</strong>，让最大子树 ≤ n/2，递归深度锁死在 log n。</p></div>
+    <div class="card" style="border-top:3px solid #0ca678"><div class="tag g">② 归类</div><p style="margin:6px 0 0">路径<strong>要么经过重心、要么整条落在某个子树里</strong>，二者必居其一。</p></div>
+    <div class="card" style="border-top:3px solid #e8590c"><div class="tag o">③ 统计</div><p style="margin:6px 0 0">距离数组排序 + 双指针，<strong>全体减去各组</strong>（容斥），去掉不经过重心的配对。</p></div>
+    <div class="card" style="border-top:3px solid #7048e8"><div class="tag p">④ 递归</div><p style="margin:6px 0 0">标记 <code>dead[c]</code> 后，对每个剩余连通块重来一遍，直到块为空。</p></div>
+  </div>
+
+  <h3>流程速查表</h3>
+  <table>
+    <tr><th style="width:16%">步骤</th><th style="width:42%">做什么</th><th>对应代码</th></tr>
+    <tr><td>算规模</td><td>DFS 求当前块大小 all</td><td><code>getSize(entry, 0); all = sz[entry]</code></td></tr>
+    <tr><td>找重心</td><td>比较 <code>max(sz[v], all−sz[u])</code></td><td><code>findRoot(entry, 0)</code></td></tr>
+    <tr><td>删重心</td><td>切断，形成若干独立块</td><td><code>dead[root] = true</code></td></tr>
+    <tr><td>统计</td><td>分组收集距离 → 容斥计数</td><td><code>ans += calc(root)</code></td></tr>
+    <tr><td>递归</td><td>对每个未删除的邻居块调用</td><td><code>for e : g[root] solve(e.to)</code></td></tr>
+  </table>
+
+  <h3>自测三问（答案在右下）</h3>
+  <ol>
+    <li>为什么一定要用重心，随便选一个点当根不行吗？</li>
+    <li><code>calc</code> 里为什么要"先减各组、再加全体"？如果只算全体会怎样？</li>
+    <li>一条路径在第 1 层被统计过，到了第 2 层为什么不会又被数一次？</li>
+  </ol>
+
+  <div class="card" style="background:#f1f5ff;border-color:#dbe4ff">
+    <div class="small" style="font-weight:700;color:#3b5bdb;margin-bottom:3px">参考答案</div>
+    <div class="small"><strong>1</strong>　随便选点可能只切掉 1 个点，递归 O(n) 层退化；重心保证减半，层数 O(log n)。<br>
+    <strong>2</strong>　全体配对里混进了"同组两点"，它们的路径不经过重心，属于要交给递归处理的那一类；只算全体会重复计数且答案偏大。<br>
+    <strong>3</strong>　重心被删除后，路径两端落在不同块，之后任何一层的 <code>calc</code> 都只看得见同一块内的点，不可能再凑成这条路径。</div>
+  </div>
+
+  <h3>配合动画一起看</h3>
+  <p>打开 <strong>点分治动画演示.html</strong>：可以播放 / 暂停 / 单步 / 调速，看重心怎么被挑出来、三组距离怎么收集、双指针怎么移动、容斥在哪一步生效、递归如何一层层把树切小。右侧面板会同步显示当前伪代码行与变量（<code>all</code>、<code>maxPart</code>、<code>ans</code>）。</p>
+
+  <div class="formula" style="margin-top:14px">找重心 <span class="o">→</span> 数过桥的路 <span class="o">→</span> 拆桥递归 <span class="o">→</span> 加起来就是答案</div>
+
+  <div class="ft"><span>点分治 · 图文讲义</span><span>第 8 页 / 共 8 页</span></div>
+</section>
+
+<script>
+/* ---------- 同一棵示例树，用来生成各页插图 ---------- */
+const P = {1:[310,42],2:[160,122],3:[310,122],4:[460,122],5:[92,202],6:[216,202],7:[256,202],8:[366,202],9:[422,202],10:[556,202],11:[92,272],12:[256,272],13:[422,272]};
+const E = [[1,2,2],[1,3,1],[1,4,3],[2,5,1],[2,6,2],[3,7,1],[3,8,2],[4,9,1],[4,10,2],[5,11,1],[7,12,3],[9,13,2]];
+const GROUPS = {2:'#4c6ef5',5:'#4c6ef5',6:'#4c6ef5',11:'#4c6ef5',3:'#0ca678',7:'#0ca678',8:'#0ca678',12:'#0ca678',4:'#7048e8',9:'#7048e8',10:'#7048e8',13:'#7048e8'};
+const DIST = {1:0,2:2,5:3,6:4,11:4,3:1,7:2,8:3,12:5,4:3,9:4,10:5,13:6};
+const COL = {blue:'#4c6ef5',teal:'#0ca678',purple:'#7048e8',orange:'#e8590c',gray:'#adb5bd'};
+
+function treeSVG(opt){
+  opt = opt || {};
+  const show = opt.show || null, fade = opt.fade || [], labels = opt.labels || {},
+        pathEdges = opt.pathEdges || [], highlight = opt.highlight || [],
+        colorGroups = opt.groups, weights = opt.weights !== false, cut = opt.cut,
+        dim = opt.dim || [];
+  let s = '<svg viewBox="0 0 640 306" xmlns="http://www.w3.org/2000/svg" font-family="Microsoft YaHei,sans-serif">';
+  const visible = id => !show || show.indexOf(id) >= 0;
+  const isPath = (a,b) => pathEdges.some(p => (p[0]===a&&p[1]===b)||(p[0]===b&&p[1]===a));
+  // edges
+  E.forEach(([a,b,w])=>{
+    if(!visible(a)||!visible(b)) return;
+    const [x1,y1]=P[a], [x2,y2]=P[b];
+    const cutEdge = cut && (a===cut||b===cut) && opt.cutDashed;
+    const onPath = isPath(a,b);
+    let col = '#cbd3de', sw = 2.2, dash='';
+    if(onPath){ col='#e8590c'; sw=4.4; }
+    else if(colorGroups && GROUPS[a] && GROUPS[a]===GROUPS[b]) { col=GROUPS[a]; sw=2.6; }
+    if(cutEdge){ col='#e8590c'; dash='stroke-dasharray="5 5"'; sw=2.2; }
+    if(fade.indexOf(a)>=0||fade.indexOf(b)>=0||dim.indexOf(a)>=0||dim.indexOf(b)>=0) col='#e3e8ef';
+    s += `<line x1="${x1}" y1="${y1}" x2="${x2}" y2="${y2}" stroke="${col}" stroke-width="${sw}" stroke-linecap="round" ${dash}/>`;
+    if(weights && !cutEdge){
+      const mx=(x1+x2)/2, my=(y1+y2)/2;
+      s += `<text x="${mx}" y="${my-3}" text-anchor="middle" font-size="10.5" fill="#8b97a5" paint-order="stroke" stroke="#fff" stroke-width="3.5">${w}</text>`;
+    }
+  });
+  // nodes
+  for(const id in P){
+    if(!visible(+id)) continue;
+    const [x,y]=P[+id];
+    let fill = '#fff', stroke = '#94a3b8', sw = 2, tc = '#334155', r = 16;
+    if(colorGroups && GROUPS[+id]) { fill = GROUPS[+id]; stroke=GROUPS[+id]; tc='#fff'; }
+    if(highlight.indexOf(+id)>=0) { fill='#e8590c'; stroke='#c2410c'; sw=3; tc='#fff'; r=18; }
+    if(fade.indexOf(+id)>=0||dim.indexOf(+id)>=0){ fill='#f1f4f8'; stroke='#dde3ea'; tc='#b6c0cc'; }
+    s += `<circle cx="${x}" cy="${y}" r="${r}" fill="${fill}" stroke="${stroke}" stroke-width="${sw}"/>`;
+    s += `<text x="${x}" y="${y+4.5}" text-anchor="middle" font-size="12.5" font-weight="700" fill="${tc}">${id}</text>`;
+    if(labels[+id] !== undefined){
+      s += `<text x="${x+21}" y="${y-10}" font-size="11" font-weight="700" fill="#e8590c" paint-order="stroke" stroke="#fff" stroke-width="3">${labels[+id]}</text>`;
+    }
+  }
+  // extra caption badges
+  (opt.badges||[]).forEach(b=>{
+    s += `<rect x="${b.x}" y="${b.y}" width="${b.w}" height="22" rx="11" fill="${b.bg}" opacity=".95"/>`;
+    s += `<text x="${b.x+b.w/2}" y="${b.y+15}" text-anchor="middle" font-size="11" font-weight="700" fill="#fff">${b.text}</text>`;
+  });
+  s += '</svg>';
+  return s;
+}
+
+const figs = {
+  cover: () => treeSVG({groups:true,highlight:[1],cut:1,cutDashed:true,
+    badges:[{x:30,y:150,w:78,text:'4 个点',bg:COL.blue},{x:275,y:282,w:78,text:'4 个点',bg:COL.teal},{x:505,y:150,w:78,text:'4 个点',bg:COL.purple}]}),
+  path: () => treeSVG({pathEdges:[[11,5],[5,2],[2,1],[1,4],[4,9],[9,13]],highlight:[11,13],
+    labels:{11:'u',13:'v'}, badges:[{x:250,y:4,w:150,text:'路径长度 = 10',bg:COL.orange}]}),
+  cut: () => treeSVG({groups:true,highlight:[1],cut:1,cutDashed:true,weights:false,
+    labels:{2:'maxPart = 9'}, badges:[{x:18,y:118,w:74,text:'蓝 4 点',bg:COL.blue},{x:275,y:278,w:74,text:'绿 4 点',bg:COL.teal},{x:540,y:118,w:74,text:'紫 4 点',bg:COL.purple}]}),
+  levels: () => treeSVG({groups:true,highlight:[1],cut:1,cutDashed:true,weights:false,
+    badges:[{x:18,y:150,w:90,text:'第 1 层 · 4',bg:COL.blue},{x:275,y:282,w:90,text:'第 1 层 · 4',bg:COL.teal},{x:530,y:150,w:90,text:'第 1 层 · 4',bg:COL.purple},{x:250,y:4,w:140,text:'第 0 层 · 13 点',bg:'#3b5bdb'}]}),
+  dist: () => treeSVG({groups:true,highlight:[1],weights:false,labels:DIST})
+};
+document.querySelectorAll('figure[data-tree]').forEach(f=>{
+  const k = f.getAttribute('data-tree');
+  if(figs[k]) f.innerHTML = figs[k]();
+});
+</script>
+</body>
+</html>

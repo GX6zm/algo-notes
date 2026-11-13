@@ -1,0 +1,11 @@
+# WorkBuddy 项目数据，不上传
+.workbuddy-ai/
+
+# 构建 / 预览临时文件
+_preview*.png
+_pv*.html
+_anim*.png
+_anim_*.html
+_layout_check.html
+__pycache__/
+*.pyc
